@@ -19,7 +19,7 @@
 
 extern bool dflag, lflag, pflag, sflag, Fflag, aflag, fflag, uflag, gflag;
 extern bool Dflag, inodeflag, devflag, Rflag, cflag, hflag, siflag, duflag;
-extern bool noindent, force_color, xdev, nolinks, noreport;
+extern bool noindent, force_color, xdev, nolinks, noreport, md5flag;
 
 extern const int ifmt[];
 extern const char fmt[], *ftype[];
@@ -97,6 +97,7 @@ void json_fillinfo(struct _info *ent)
     } else
       fprintf(outfile, ",\"size\":%lld", (long long int)ent->size);
   }
+  if (md5flag && *ent->md5sum != 0) fprintf(outfile, ",\"md5\":\"%s\"", ent->md5sum);
   if (Dflag) fprintf(outfile, ",\"time\":\"%s\"", do_date(cflag? ent->ctime : ent->mtime));
 }
 

@@ -788,6 +788,8 @@ struct _info *getinfo(char *name, char *path)
   ent->ctime  = lst.st_ctime;
   ent->mtime  = lst.st_mtime;
 
+  if (md5flag && ent->dpath != 0) calc_file_md5(ent->dpath,ent->md5sum);
+
 #ifdef __EMX__
   ent->attr   = lst.st_attr;
 #else
@@ -1480,7 +1482,7 @@ char *fillinfo(char *buf, struct _info *ent)
   if (uflag) n += sprintf(buf+n, " %-8.32s", uidtoname(ent->uid));
   if (gflag) n += sprintf(buf+n, " %-8.32s", gidtoname(ent->gid));
   if (sflag) n += psize(buf+n,ent->size);
-  if (md5flag && ent->dpath != 0 && calc_file_md5(ent->dpath,ent->md5sum)) n += sprintf(buf+n, " %s", ent->md5sum);
+  if (md5flag && ent->dpath != 0 && *ent->md5sum != 0) n += sprintf(buf+n, " %s", ent->md5sum);
   if (Dflag) n += sprintf(buf+n, " %s", do_date(cflag? ent->ctime : ent->mtime));
 
   if (buf[0] == ' ') {
