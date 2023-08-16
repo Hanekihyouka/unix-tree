@@ -16,6 +16,9 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
+#ifndef TREE_H_INCLUDED
+#define TREE_H_INCLUDED
+
 #define _GNU_SOURCE
 
 #include <stdlib.h>
@@ -80,6 +83,7 @@
 #define scopy(x)	strcpy(xmalloc(strlen(x)+1),(x))
 #define MINIT		30	/* number of dir entries to initially allocate */
 #define MINC		20	/* allocation increment */
+#define MD5_LEN 32
 
 #ifndef TRUE
 typedef enum {FALSE=0, TRUE} bool;
@@ -88,6 +92,7 @@ typedef int bool;
 #endif
 
 struct _info {
+  char *dpath;
   char *name;
   char *lnk;
   bool isdir;
@@ -99,6 +104,7 @@ struct _info {
   uid_t uid;
   gid_t gid;
   off_t size;
+  char md5sum[MD5_LEN + 1];
   time_t atime, ctime, mtime;
   dev_t dev, ldev;
   ino_t inode, linode;
@@ -218,6 +224,7 @@ char *prot(long);
 char *prot(mode_t);
 #endif
 char *do_date(time_t);
+int calc_file_md5();
 void printit(char *);
 int psize(char *buf, off_t size);
 char Ftype(mode_t mode);
@@ -311,3 +318,5 @@ void new_emit_unix(char **dirname, bool needfulltree);
 #ifndef __linux__
 int strverscmp (const char *s1, const char *s2);
 #endif
+
+#endif // TREE_H_INCLUDED

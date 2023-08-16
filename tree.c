@@ -30,7 +30,7 @@ bool qflag, Nflag, Qflag, Dflag, inodeflag, devflag, hflag, Rflag;
 bool Hflag, siflag, cflag, Xflag, Jflag, duflag, pruneflag;
 bool noindent, force_color, nocolor, xdev, noreport, nolinks;
 bool ignorecase, matchdirs, fromfile, metafirst, gitignore, showinfo;
-bool reverse, fflinks;
+bool reverse, fflinks, md5flag;
 int flimit;
 
 struct listingcalls lc;
@@ -135,7 +135,7 @@ int main(int argc, char **argv)
   Dflag = qflag = Nflag = Qflag = Rflag = hflag = Hflag = siflag = cflag = FALSE;
   noindent = force_color = nocolor = xdev = noreport = nolinks = reverse = FALSE;
   ignorecase = matchdirs = inodeflag = devflag = Xflag = Jflag = fflinks = FALSE;
-  duflag = pruneflag = metafirst = gitignore = FALSE;
+  duflag = pruneflag = metafirst = gitignore = md5flag = FALSE;
 
   flimit = 0;
   dirs = xmalloc(sizeof(int) * (maxdirs=PATH_MAX));
@@ -374,6 +374,11 @@ int main(int argc, char **argv)
 	    if (!strcmp("--device",argv[i])) {
 	      j = strlen(argv[i])-1;
 	      devflag=TRUE;
+	      break;
+	    }
+	    if (!strcmp("--md5",argv[i])) {
+	      j = strlen(argv[i])-1;
+	      md5flag=TRUE;
 	      break;
 	    }
 	    if (!strcmp("--noreport",argv[i])) {
@@ -658,6 +663,7 @@ void usage(int n)
 	"  -F            Appends '/', '=', '*', '@', '|' or '>' as per ls -F.\n"
 	"  --inodes      Print inode number of each file.\n"
 	"  --device      Print device ID number to which each file belongs.\n"
+    "  --md5         Print md5sum of each file.\n"
 	"  ------- Sorting options -------\n"
 	"  -v            Sort files alphanumerically by version.\n"
 	"  -t            Sort files by last modification time.\n"
@@ -760,11 +766,11 @@ struct _info *getinfo(char *name, char *path)
 
   ent = (struct _info *)xmalloc(sizeof(struct _info));
   memset(ent, 0, sizeof(struct _info));
-
   ent->name = scopy(name);
   /* We should just incorporate struct stat into _info, and eliminate this unnecessary copying.
    * Made sense long ago when we had fewer options and didn't need half of stat.
    */
+  ent->dpath  = scopy(path);
   ent->mode   = lst.st_mode;
   ent->uid    = lst.st_uid;
   ent->gid    = lst.st_gid;
@@ -1318,6 +1324,38 @@ char *do_date(time_t t)
 }
 
 /**
+ * md5sum
+ */
+
+#include <stdio.h>
+#include <ctype.h>
+
+#define STR_VALUE(val) #val
+#define STR(name) STR_VALUE(name)
+
+#define PATH_LEN 256
+#define MD5_LEN 32
+
+int calc_file_md5(char *file_name, char *md5_sum){
+    #define MD5SUM_CMD_FMT "md5sum %." STR(PATH_LEN) "s 2>/dev/null"
+    char cmd[PATH_LEN + sizeof (MD5SUM_CMD_FMT)];
+    sprintf(cmd, MD5SUM_CMD_FMT, file_name);
+    #undef MD5SUM_CMD_FMT
+
+    FILE *p = popen(cmd, "r");
+    if (p == NULL) return 0;
+
+    int i, ch;
+    for (i = 0; i < MD5_LEN && isxdigit(ch = fgetc(p)); i++) {
+        *md5_sum++ = ch;
+    }
+
+    *md5_sum = '\0';
+    pclose(p);
+    return i == MD5_LEN;
+}
+
+/**
  * Must fix this someday
  */
 void printit(char *s)
@@ -1442,6 +1480,7 @@ char *fillinfo(char *buf, struct _info *ent)
   if (uflag) n += sprintf(buf+n, " %-8.32s", uidtoname(ent->uid));
   if (gflag) n += sprintf(buf+n, " %-8.32s", gidtoname(ent->gid));
   if (sflag) n += psize(buf+n,ent->size);
+  if (md5flag && ent->dpath != 0 && calc_file_md5(ent->dpath,ent->md5sum)) n += sprintf(buf+n, " %s", ent->md5sum);
   if (Dflag) n += sprintf(buf+n, " %s", do_date(cflag? ent->ctime : ent->mtime));
 
   if (buf[0] == ' ') {
